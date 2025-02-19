@@ -30,6 +30,8 @@ func RespondJSON(w http.ResponseWriter, r *http.Request, status int, payload int
 func DecodeJSON(r *http.Request, v interface{}) {
 	if ValidateContentType(r, "application/json") {
 		middleware.SetBadRequestError(r, errors.New("Content-Type must be application/json"))
+		v = nil
+		return
 	}
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
 		middleware.SetBadRequestError(r, err)
