@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"github.com/dfryer1193/mjolnir/middleware"
 	"github.com/dfryer1193/mjolnir/router"
 	"github.com/rs/zerolog/log"
 	"net/http"
@@ -15,6 +17,10 @@ func main() {
 
 	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
 		panic("This is a panic")
+	})
+
+	r.Get("/error", func(w http.ResponseWriter, r *http.Request) {
+		middleware.SetError(r, 504, errors.New("This is an error"))
 	})
 
 	log.Info().Msg("Server starting on :8080")
