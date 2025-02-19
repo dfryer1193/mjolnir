@@ -33,7 +33,7 @@ go get github.com/dfryer1193/mjolnir
 
 ## Requirements
 
-- Go 1.24 or later
+- Go 1.23.6 or later
 - github.com/go-chi/chi/v5
 - github.com/rs/zerolog
 - github.com/google/uuid
@@ -46,25 +46,61 @@ go get github.com/dfryer1193/mjolnir
 package main
 
 import (
-    "github.com/dfryer1193/mjolnir/router"
-    "github.com/rs/zerolog/log"
-    "net/http"
+  "github.com/dfryer1193/mjolnir/router"
+  "github.com/dfryer1193/mjolnir/utils"
+  "github.com/rs/zerolog/log"
+  "net/http"
 )
 
 func main() {
-    r := router.New()
+  r := router.New()
 
-    r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello World!"))
-    })
+  r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+    utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
+  })
 
-    r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
-        panic("This is a panic")
-    })
+  r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
+    panic("This is a panic")
+  })
 
-    log.Info().Msg("Server starting on :8080")
-    http.ListenAndServe(":8080", r)
+  log.Info().Msg("Server starting on :8080")
+  http.ListenAndServe(":8080", r)
 }
+```
+
+### Utility Functions
+```go
+// Respond with JSON
+utils.RespondJSON(w, r, http.StatusOK, payload)
+
+// Decode JSON request body
+var data MyStruct
+if err := utils.DecodeJSON(r, &data); err != nil {
+// Handle error
+}
+
+// Validate content type
+if !utils.ValidateContentType(r, "application/json") {
+// Handle invalid content type
+}
+```
+
+### Error Handling Utilities
+Mjolnir provides convenient error handling functions:
+```go
+middleware.SetError(r, status, err)           // Generic error
+middleware.SetInternalError(r, err)           // 500 Internal Server Error
+middleware.SetBadRequestError(r, err)         // 400 Bad Request
+middleware.SetNotFoundError(r, err)           // 404 Not Found
+middleware.SetUnauthorizedError(r, err)       // 401 Unauthorized
+```
+
+#### General Usage
+To handle errors in logic, you can use `SetError` (or any of the more specific error handling functions) at the site of the error to be handled by the error handling middleware.
+```go
+r.Get("/error", func(w http.ResponseWriter, r *http.Request) {
+	middleware.SetError(r, 504, errors.New("this is an error"))
+})
 ```
 
 ### Error Response Format
