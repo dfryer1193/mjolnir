@@ -20,6 +20,18 @@ func main() {
 		utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
 	})
 
+	r.Post("/json", func(w http.ResponseWriter, r *http.Request) {
+		var name struct {
+			Name string `json:"Name"`
+		}
+		err := utils.DecodeJSON(r, &name)
+		if err != nil {
+			middleware.SetBadRequestError(r, err)
+			return
+		}
+		utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello " + name.Name})
+	})
+
 	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
 		panic("This is a panic")
 	})

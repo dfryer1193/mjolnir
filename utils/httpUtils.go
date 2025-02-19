@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dfryer1193/mjolnir/middleware"
 	"github.com/rs/zerolog/log"
@@ -27,15 +26,14 @@ func RespondJSON(w http.ResponseWriter, r *http.Request, status int, payload int
 }
 
 // DecodeJSON decodes JSON request body into the provided struct
-func DecodeJSON(r *http.Request, v interface{}) {
-	if ValidateContentType(r, "application/json") {
-		middleware.SetBadRequestError(r, errors.New("Content-Type must be application/json"))
-		v = nil
-		return
+func DecodeJSON(r *http.Request, v interface{}) error {
+	if !ValidateContentType(r, "application/json") {
+		return fmt.Errorf("Content-Type %s is not supported", r.Header.Get("Content-Type"))
 	}
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
-		middleware.SetBadRequestError(r, err)
+		return fmt.Errorf("failed to decode JSON: %w", err)
 	}
+	return nil
 }
 
 // ValidateContentType checks if the request has the required content type
