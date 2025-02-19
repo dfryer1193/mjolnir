@@ -22,6 +22,7 @@ func New() *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 
+	r.Use(enhancedmiddleware.RequestID)
 	r.Use(enhancedmiddleware.RequestLogger)
 	r.Use(enhancedmiddleware.ErrorHandler)
 
