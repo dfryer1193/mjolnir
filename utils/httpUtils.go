@@ -3,17 +3,26 @@ package utils
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/dfryer1193/mjolnir/middleware"
+	"github.com/rs/zerolog/log"
 	"net/http"
 )
 
 // RespondJSON sends a JSON response with proper headers
 func RespondJSON(w http.ResponseWriter, r *http.Request, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
+
+	response, err := json.Marshal(payload)
+	if err != nil {
+		middleware.SetInternalError(r, err)
+		return
+	}
+
 	w.WriteHeader(status)
 
-	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		middleware.SetInternalError(r, err)
+	if _, err := w.Write(response); err != nil {
+		log.Error().Err(fmt.Errorf("failed to write response: %w", err)).Msg("Failed to write response")
 	}
 }
 

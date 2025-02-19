@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/dfryer1193/mjolnir/middleware"
 	"github.com/dfryer1193/mjolnir/router"
+	"github.com/dfryer1193/mjolnir/utils"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
@@ -15,6 +16,10 @@ func main() {
 		w.Write([]byte("Hello World!"))
 	})
 
+	r.Get("/json", func(w http.ResponseWriter, r *http.Request) {
+		utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
+	})
+
 	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
 		panic("This is a panic")
 	})
@@ -24,5 +29,9 @@ func main() {
 	})
 
 	log.Info().Msg("Server starting on :8080")
-	http.ListenAndServe(":8080", r)
+	err := http.ListenAndServe(":8080", r)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Server failed to start")
+	}
+	log.Info().Msg("Server stopped")
 }

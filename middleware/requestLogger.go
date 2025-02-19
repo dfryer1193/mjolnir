@@ -30,8 +30,9 @@ func RequestLogger(next http.Handler) http.Handler {
 
 // responseWriter is a custom response writer that captures the status code
 type responseWriter struct {
-	w      http.ResponseWriter
-	status int
+	w           http.ResponseWriter
+	status      int
+	wroteHeader bool
 }
 
 func (rw *responseWriter) Header() http.Header {
@@ -39,10 +40,18 @@ func (rw *responseWriter) Header() http.Header {
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
+	if !rw.wroteHeader {
+		rw.WriteHeader(http.StatusOK)
+	}
 	return rw.w.Write(b)
 }
 
 func (rw *responseWriter) WriteHeader(statusCode int) {
+	if rw.wroteHeader {
+		return
+	}
+
 	rw.status = statusCode
 	rw.w.WriteHeader(statusCode)
+	rw.wroteHeader = true
 }
