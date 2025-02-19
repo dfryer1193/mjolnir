@@ -20,7 +20,7 @@ func main() {
 	})
 
 	r.Get("/error", func(w http.ResponseWriter, r *http.Request) {
-		middleware.SetError(r, 504, errors.New("This is an error"))
+		middleware.SetError(r, 504, errors.New("this is an error"))
 	})
 
 	log.Info().Msg("Server starting on :8080")
