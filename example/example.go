@@ -13,23 +13,34 @@ func main() {
 	r := router.New()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello World!"))
+		_, err := w.Write([]byte("Hello World!"))
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to write response")
+		}
 	})
 
 	r.Get("/json", func(w http.ResponseWriter, r *http.Request) {
-		utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
+		err := utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
+		if err != nil {
+			middleware.SetInternalError(r, err)
+		}
 	})
 
 	r.Post("/json", func(w http.ResponseWriter, r *http.Request) {
 		var name struct {
 			Name string `json:"Name"`
 		}
+
 		err := utils.DecodeJSON(r, &name)
 		if err != nil {
 			middleware.SetBadRequestError(r, err)
 			return
 		}
-		utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello " + name.Name})
+
+		err = utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello " + name.Name})
+		if err != nil {
+			middleware.SetInternalError(r, err)
+		}
 	})
 
 	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
