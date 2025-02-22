@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -30,8 +31,7 @@ func DecodeJSON(r *http.Request, v interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("Content-Type %s is not supported", r.Header.Get("Content-Type"))
 	}
 
-	var bodyBytes []byte
-	_, err := r.Body.Read(bodyBytes)
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read request body: %w", err)
 	}
