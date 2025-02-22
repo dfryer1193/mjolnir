@@ -122,16 +122,18 @@ func TestDecodeJSON(t *testing.T) {
 		body          string
 		target        interface{}
 		expected      interface{}
+		expectedBody  string
 		expectError   bool
 		errorContains string
 	}{
 		{
-			name:        "valid JSON",
-			contentType: "application/json",
-			body:        `{"name":"test","value":123}`,
-			target:      &testStruct{},
-			expected:    &testStruct{Name: "test", Value: 123},
-			expectError: false,
+			name:         "valid JSON",
+			contentType:  "application/json",
+			body:         `{"name":"test","value":123}`,
+			target:       &testStruct{},
+			expected:     &testStruct{Name: "test", Value: 123},
+			expectedBody: `{"name":"test","value":123}`,
+			expectError:  false,
 		},
 		{
 			name:          "invalid content type",
@@ -155,15 +157,16 @@ func TestDecodeJSON(t *testing.T) {
 			body:          "",
 			target:        &testStruct{},
 			expectError:   true,
-			errorContains: "failed to decode JSON",
+			errorContains: "failed to decode JSON: unexpected end of JSON input",
 		},
 		{
-			name:        "null JSON",
-			contentType: "application/json",
-			body:        `null`,
-			target:      &testStruct{},
-			expected:    &testStruct{},
-			expectError: false,
+			name:         "null JSON",
+			contentType:  "application/json",
+			body:         `null`,
+			target:       &testStruct{},
+			expected:     &testStruct{},
+			expectedBody: `null`,
+			expectError:  false,
 		},
 		{
 			name:          "missing content-type header",
@@ -186,7 +189,7 @@ func TestDecodeJSON(t *testing.T) {
 			req.Header.Set("Content-Type", test.contentType)
 
 			// Execute DecodeJSON
-			err := DecodeJSON(req, test.target)
+			bodyBytes, err := DecodeJSON(req, test.target)
 
 			// Check error conditions
 			if test.expectError {
@@ -201,6 +204,11 @@ func TestDecodeJSON(t *testing.T) {
 			// Check for unexpected errors
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Verify returned body bytes match the input
+			if test.expectedBody != "" && string(bodyBytes) != test.expectedBody {
+				t.Errorf("expected body bytes %q, got %q", test.expectedBody, string(bodyBytes))
 			}
 
 			// Compare result with expected value
@@ -232,7 +240,7 @@ func TestDecodeJSONClosesBody(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	var v struct{ Name string }
-	err := DecodeJSON(req, &v)
+	_, err := DecodeJSON(req, &v)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
