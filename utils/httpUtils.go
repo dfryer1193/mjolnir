@@ -25,15 +25,22 @@ func RespondJSON(w http.ResponseWriter, r *http.Request, status int, payload int
 }
 
 // DecodeJSON decodes JSON request body into the provided struct
-func DecodeJSON(r *http.Request, v interface{}) error {
+func DecodeJSON(r *http.Request, v interface{}) ([]byte, error) {
 	if !ValidateContentType(r, "application/json") {
-		return fmt.Errorf("Content-Type %s is not supported", r.Header.Get("Content-Type"))
+		return nil, fmt.Errorf("Content-Type %s is not supported", r.Header.Get("Content-Type"))
+	}
+
+	var bodyBytes []byte
+	_, err := r.Body.Read(bodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read request body: %w", err)
 	}
 	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
-		return fmt.Errorf("failed to decode JSON: %w", err)
+
+	if err := json.Unmarshal(bodyBytes, v); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON: %w", err)
 	}
-	return nil
+	return bodyBytes, nil
 }
 
 // ValidateContentType checks if the request has the required content type
