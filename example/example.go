@@ -1,8 +1,7 @@
 package main
 
 import (
-	"errors"
-	"github.com/dfryer1193/mjolnir/middleware"
+	"fmt"
 	"github.com/dfryer1193/mjolnir/router"
 	"github.com/dfryer1193/mjolnir/utils"
 	"github.com/rs/zerolog/log"
@@ -12,44 +11,45 @@ import (
 func main() {
 	r := router.New()
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("Hello World!"))
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to write response")
-		}
-	})
+	r.Get("/", utils.ErrorHandler(
+		func(w http.ResponseWriter, r *http.Request) *utils.ApiError {
+			_, err := w.Write([]byte("Hello World!"))
+			if err != nil {
+				return utils.InternalServerErr(err)
+			}
+			return nil
+		}),
+	)
 
 	r.Get("/json", func(w http.ResponseWriter, r *http.Request) {
-		err := utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
-		if err != nil {
-			middleware.SetInternalError(r, err)
-		}
+		utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
 	})
 
-	r.Post("/json", func(w http.ResponseWriter, r *http.Request) {
-		var name struct {
-			Name string `json:"Name"`
-		}
+	r.Post("/json", utils.ErrorHandler(
+		func(w http.ResponseWriter, r *http.Request) *utils.ApiError {
+			var name struct {
+				Name string `json:"name"`
+			}
 
-		err := utils.DecodeJSON(r, &name)
-		if err != nil {
-			middleware.SetBadRequestError(r, err)
-			return
-		}
+			_, err := utils.DecodeJSON(r, &name)
+			if err != nil {
+				return utils.BadRequestErr(err)
+			}
 
-		err = utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello " + name.Name})
-		if err != nil {
-			middleware.SetInternalError(r, err)
-		}
-	})
+			utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello " + name.Name})
+			return nil
+		}),
+	)
 
 	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
 		panic("This is a panic")
 	})
 
-	r.Get("/error", func(w http.ResponseWriter, r *http.Request) {
-		middleware.SetError(r, 504, errors.New("this is an error"))
-	})
+	r.Get("/error", utils.ErrorHandler(
+		func(w http.ResponseWriter, r *http.Request) *utils.ApiError {
+			return utils.NewApiError(fmt.Errorf("This is an error"), http.StatusServiceUnavailable)
+		}),
+	)
 
 	log.Info().Msg("Server starting on :8080")
 	err := http.ListenAndServe(":8080", r)

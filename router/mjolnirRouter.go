@@ -24,7 +24,6 @@ func New() *chi.Mux {
 
 	r.Use(enhancedmiddleware.RequestID)
 	r.Use(enhancedmiddleware.RequestLogger)
-	r.Use(enhancedmiddleware.ErrorHandler)
 
 	return r
 }
