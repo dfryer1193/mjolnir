@@ -47,7 +47,7 @@ package main
 
 import (
   "github.com/dfryer1193/mjolnir/router"
-  "github.com/dfryer1193/mjolnir/utils"
+  "github.com/dfryer1193/mjolnir/utils/httpx"
   "github.com/rs/zerolog/log"
   "net/http"
 )
@@ -56,7 +56,7 @@ func main() {
   r := router.New()
 
   r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-    utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
+    httpx.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
   })
 
   r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
@@ -68,19 +68,21 @@ func main() {
 }
 ```
 
-### Utility Functions
+### HTTP Utility Functions
 ```go
+import "github.com/dfryer1193/mjolnir/utils/httpx"
+
 // Respond with JSON
-utils.RespondJSON(w, r, http.StatusOK, payload)
+httpx.RespondJSON(w, r, http.StatusOK, payload)
 
 // Decode JSON request body
 var data MyStruct
-if err := utils.DecodeJSON(r, &data); err != nil {
+if err := httpx.DecodeJSON(r, &data); err != nil {
 // Handle error
 }
 
 // Validate content type
-if !utils.ValidateContentType(r, "application/json") {
+if !httpx.ValidateContentType(r, "application/json") {
 // Handle invalid content type
 }
 ```

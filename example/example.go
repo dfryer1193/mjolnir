@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/dfryer1193/mjolnir/router"
-	"github.com/dfryer1193/mjolnir/utils"
+	"github.com/dfryer1193/mjolnir/utils/errorx"
+	"github.com/dfryer1193/mjolnir/utils/httpx"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
@@ -11,32 +12,32 @@ import (
 func main() {
 	r := router.New()
 
-	r.Get("/", utils.ErrorHandler(
-		func(w http.ResponseWriter, r *http.Request) *utils.ApiError {
+	r.Get("/", errorx.ErrorHandler(
+		func(w http.ResponseWriter, r *http.Request) *errorx.ApiError {
 			_, err := w.Write([]byte("Hello World!"))
 			if err != nil {
-				return utils.InternalServerErr(err)
+				return errorx.InternalServerErr(err)
 			}
 			return nil
 		}),
 	)
 
 	r.Get("/json", func(w http.ResponseWriter, r *http.Request) {
-		utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
+		httpx.RespondJSON(w, r, 200, map[string]string{"msg": "Hello World!"})
 	})
 
-	r.Post("/json", utils.ErrorHandler(
-		func(w http.ResponseWriter, r *http.Request) *utils.ApiError {
+	r.Post("/json", errorx.ErrorHandler(
+		func(w http.ResponseWriter, r *http.Request) *errorx.ApiError {
 			var name struct {
 				Name string `json:"name"`
 			}
 
-			_, err := utils.DecodeJSON(r, &name)
+			_, err := httpx.DecodeJSON(r, &name)
 			if err != nil {
-				return utils.BadRequestErr(err)
+				return errorx.BadRequestErr(err)
 			}
 
-			utils.RespondJSON(w, r, 200, map[string]string{"msg": "Hello " + name.Name})
+			httpx.RespondJSON(w, r, 200, map[string]string{"msg": "Hello " + name.Name})
 			return nil
 		}),
 	)
@@ -45,9 +46,9 @@ func main() {
 		panic("This is a panic")
 	})
 
-	r.Get("/error", utils.ErrorHandler(
-		func(w http.ResponseWriter, r *http.Request) *utils.ApiError {
-			return utils.NewApiError(fmt.Errorf("This is an error"), http.StatusServiceUnavailable)
+	r.Get("/error", errorx.ErrorHandler(
+		func(w http.ResponseWriter, r *http.Request) *errorx.ApiError {
+			return errorx.NewApiError(fmt.Errorf("This is an error"), http.StatusServiceUnavailable)
 		}),
 	)
 
