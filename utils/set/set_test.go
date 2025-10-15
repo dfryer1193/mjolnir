@@ -1,12 +1,11 @@
 package set
 
 import (
-	"reflect"
 	"sort"
 	"testing"
 )
 
-func TestNew(t *testing.T) {
+func TestSet_New(t *testing.T) {
 	tests := []struct {
 		name     string
 		items    []int
@@ -19,97 +18,124 @@ func TestNew(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		s := New(tt.items...)
+		t.Run(tt.name, func(t *testing.T) {
+			s := New(tt.items...)
 
-		if s.Len() != len(tt.expected) {
-			t.Errorf("%s: expected length %d, got %d", tt.name, len(tt.expected), s.Len())
-		}
-
-		for _, item := range tt.expected {
-			if !s.Contains(item) {
-				t.Errorf("%s: expected set to contain %v", tt.name, item)
+			if s.Len() != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), s.Len())
 			}
-		}
+
+			for _, item := range tt.expected {
+				if !s.Contains(item) {
+					t.Errorf("expected set to contain %v", item)
+				}
+			}
+		})
 	}
 }
 
-func TestAdd(t *testing.T) {
-	s := New[int]()
-
-	// Test adding to empty set
-	s.Add(1)
-	if !s.Contains(1) {
-		t.Error("expected set to contain 1 after adding")
-	}
-	if s.Len() != 1 {
-		t.Errorf("expected length 1, got %d", s.Len())
-	}
-
-	// Test adding duplicate
-	s.Add(1)
-	if s.Len() != 1 {
-		t.Errorf("expected length to remain 1 after adding duplicate, got %d", s.Len())
-	}
-
-	// Test adding different item
-	s.Add(2)
-	if !s.Contains(2) {
-		t.Error("expected set to contain 2 after adding")
-	}
-	if s.Len() != 2 {
-		t.Errorf("expected length 2, got %d", s.Len())
-	}
-}
-
-func TestRemove(t *testing.T) {
-	s := New(1, 2, 3)
-
-	// Test removing existing item
-	s.Remove(2)
-	if s.Contains(2) {
-		t.Error("expected set to not contain 2 after removal")
-	}
-	if s.Len() != 2 {
-		t.Errorf("expected length 2, got %d", s.Len())
-	}
-
-	// Test removing non-existing item
-	s.Remove(4)
-	if s.Len() != 2 {
-		t.Errorf("expected length to remain 2 after removing non-existing item, got %d", s.Len())
-	}
-
-	// Test removing all items
-	s.Remove(1)
-	s.Remove(3)
-	if s.Len() != 0 {
-		t.Errorf("expected empty set, got length %d", s.Len())
-	}
-}
-
-func TestContains(t *testing.T) {
-	s := New(1, 2, 3)
-
+func TestSet_Add(t *testing.T) {
 	tests := []struct {
-		item     int
-		expected bool
+		name           string
+		initial        []int
+		add            []int
+		expectedLen    int
+		expectedItems  []int
 	}{
-		{1, true},
-		{2, true},
-		{3, true},
-		{4, false},
-		{0, false},
+		{"add to empty set", []int{}, []int{1}, 1, []int{1}},
+		{"add duplicate", []int{1}, []int{1}, 1, []int{1}},
+		{"add multiple", []int{1}, []int{2, 3}, 3, []int{1, 2, 3}},
+		{"add with duplicates", []int{1, 2}, []int{2, 3, 3}, 3, []int{1, 2, 3}},
 	}
 
 	for _, tt := range tests {
-		result := s.Contains(tt.item)
-		if result != tt.expected {
-			t.Errorf("Contains(%d): expected %v, got %v", tt.item, tt.expected, result)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			s := New(tt.initial...)
+			for _, item := range tt.add {
+				s.Add(item)
+			}
+
+			if s.Len() != tt.expectedLen {
+				t.Errorf("expected length %d, got %d", tt.expectedLen, s.Len())
+			}
+
+			for _, item := range tt.expectedItems {
+				if !s.Contains(item) {
+					t.Errorf("expected set to contain %v", item)
+				}
+			}
+		})
 	}
 }
 
-func TestLen(t *testing.T) {
+func TestSet_Remove(t *testing.T) {
+	tests := []struct {
+		name          string
+		initial       []int
+		remove        []int
+		expectedLen   int
+		shouldContain []int
+		shouldNotContain []int
+	}{
+		{"remove existing item", []int{1, 2, 3}, []int{2}, 2, []int{1, 3}, []int{2}},
+		{"remove non-existing item", []int{1, 2, 3}, []int{4}, 3, []int{1, 2, 3}, []int{4}},
+		{"remove all items", []int{1, 2, 3}, []int{1, 2, 3}, 0, []int{}, []int{1, 2, 3}},
+		{"remove from empty set", []int{}, []int{1}, 0, []int{}, []int{1}},
+		{"remove multiple", []int{1, 2, 3, 4, 5}, []int{2, 4}, 3, []int{1, 3, 5}, []int{2, 4}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := New(tt.initial...)
+			for _, item := range tt.remove {
+				s.Remove(item)
+			}
+
+			if s.Len() != tt.expectedLen {
+				t.Errorf("expected length %d, got %d", tt.expectedLen, s.Len())
+			}
+
+			for _, item := range tt.shouldContain {
+				if !s.Contains(item) {
+					t.Errorf("expected set to contain %v", item)
+				}
+			}
+
+			for _, item := range tt.shouldNotContain {
+				if s.Contains(item) {
+					t.Errorf("expected set to not contain %v", item)
+				}
+			}
+		})
+	}
+}
+
+func TestSet_Contains(t *testing.T) {
+	tests := []struct {
+		name     string
+		items    []int
+		check    int
+		expected bool
+	}{
+		{"contains existing item", []int{1, 2, 3}, 2, true},
+		{"does not contain missing item", []int{1, 2, 3}, 4, false},
+		{"empty set contains nothing", []int{}, 1, false},
+		{"contains first item", []int{1, 2, 3}, 1, true},
+		{"contains last item", []int{1, 2, 3}, 3, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := New(tt.items...)
+			result := s.Contains(tt.check)
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestSet_Len(t *testing.T) {
 	tests := []struct {
 		name     string
 		items    []int
@@ -119,17 +145,20 @@ func TestLen(t *testing.T) {
 		{"single item", []int{1}, 1},
 		{"multiple items", []int{1, 2, 3}, 3},
 		{"duplicates", []int{1, 1, 2, 2, 3}, 3},
+		{"many items", []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 10},
 	}
 
 	for _, tt := range tests {
-		s := New(tt.items...)
-		if s.Len() != tt.expected {
-			t.Errorf("%s: expected length %d, got %d", tt.name, tt.expected, s.Len())
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			s := New(tt.items...)
+			if s.Len() != tt.expected {
+				t.Errorf("expected length %d, got %d", tt.expected, s.Len())
+			}
+		})
 	}
 }
 
-func TestItems(t *testing.T) {
+func TestSet_Items(t *testing.T) {
 	tests := []struct {
 		name     string
 		items    []int
@@ -138,23 +167,33 @@ func TestItems(t *testing.T) {
 		{"empty set", []int{}, []int{}},
 		{"single item", []int{1}, []int{1}},
 		{"multiple items", []int{1, 2, 3}, []int{1, 2, 3}},
+		{"with duplicates", []int{3, 1, 2, 1, 3}, []int{1, 2, 3}},
 	}
 
 	for _, tt := range tests {
-		s := New(tt.items...)
-		result := s.Items()
+		t.Run(tt.name, func(t *testing.T) {
+			s := New(tt.items...)
+			result := s.Items()
 
-		// Sort both slices for comparison since map iteration order is not guaranteed
-		sort.Ints(result)
-		sort.Ints(tt.expected)
+			sort.Ints(result)
+			sort.Ints(tt.expected)
 
-		if !reflect.DeepEqual(result, tt.expected) {
-			t.Errorf("%s: expected %v, got %v", tt.name, tt.expected, result)
-		}
+			if len(result) != len(tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+				return
+			}
+
+			for i := range result {
+				if result[i] != tt.expected[i] {
+					t.Errorf("expected %v, got %v", tt.expected, result)
+					return
+				}
+			}
+		})
 	}
 }
 
-func TestUnion(t *testing.T) {
+func TestSet_Union(t *testing.T) {
 	tests := []struct {
 		name     string
 		set1     []int
@@ -162,30 +201,42 @@ func TestUnion(t *testing.T) {
 		expected []int
 	}{
 		{"empty sets", []int{}, []int{}, []int{}},
-		{"one empty set", []int{1, 2}, []int{}, []int{1, 2}},
+		{"first empty", []int{}, []int{1, 2}, []int{1, 2}},
+		{"second empty", []int{1, 2}, []int{}, []int{1, 2}},
 		{"no overlap", []int{1, 2}, []int{3, 4}, []int{1, 2, 3, 4}},
 		{"partial overlap", []int{1, 2, 3}, []int{3, 4, 5}, []int{1, 2, 3, 4, 5}},
 		{"complete overlap", []int{1, 2, 3}, []int{1, 2, 3}, []int{1, 2, 3}},
+		{"subset", []int{1, 2, 3, 4, 5}, []int{2, 3}, []int{1, 2, 3, 4, 5}},
 	}
 
 	for _, tt := range tests {
-		s1 := New(tt.set1...)
-		s2 := New(tt.set2...)
-		result := s1.Union(s2)
+		t.Run(tt.name, func(t *testing.T) {
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
+			result := s1.Union(s2)
 
-		if result.Len() != len(tt.expected) {
-			t.Errorf("%s: expected length %d, got %d", tt.name, len(tt.expected), result.Len())
-		}
-
-		for _, item := range tt.expected {
-			if !result.Contains(item) {
-				t.Errorf("%s: expected union to contain %v", tt.name, item)
+			if result.Len() != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), result.Len())
 			}
-		}
+
+			for _, item := range tt.expected {
+				if !result.Contains(item) {
+					t.Errorf("expected union to contain %v", item)
+				}
+			}
+
+			// Verify original sets unchanged
+			if s1.Len() != len(tt.set1) {
+				t.Error("original set s1 was modified")
+			}
+			if s2.Len() != len(tt.set2) {
+				t.Error("original set s2 was modified")
+			}
+		})
 	}
 }
 
-func TestIntersection(t *testing.T) {
+func TestSet_Intersection(t *testing.T) {
 	tests := []struct {
 		name     string
 		set1     []int
@@ -193,30 +244,43 @@ func TestIntersection(t *testing.T) {
 		expected []int
 	}{
 		{"empty sets", []int{}, []int{}, []int{}},
-		{"one empty set", []int{1, 2}, []int{}, []int{}},
+		{"first empty", []int{}, []int{1, 2}, []int{}},
+		{"second empty", []int{1, 2}, []int{}, []int{}},
 		{"no overlap", []int{1, 2}, []int{3, 4}, []int{}},
 		{"partial overlap", []int{1, 2, 3}, []int{3, 4, 5}, []int{3}},
 		{"complete overlap", []int{1, 2, 3}, []int{1, 2, 3}, []int{1, 2, 3}},
+		{"subset", []int{1, 2, 3, 4, 5}, []int{2, 3}, []int{2, 3}},
+		{"multiple overlap", []int{1, 2, 3, 4, 5}, []int{2, 3, 4, 6, 7}, []int{2, 3, 4}},
 	}
 
 	for _, tt := range tests {
-		s1 := New(tt.set1...)
-		s2 := New(tt.set2...)
-		result := s1.Intersection(s2)
+		t.Run(tt.name, func(t *testing.T) {
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
+			result := s1.Intersection(s2)
 
-		if result.Len() != len(tt.expected) {
-			t.Errorf("%s: expected length %d, got %d", tt.name, len(tt.expected), result.Len())
-		}
-
-		for _, item := range tt.expected {
-			if !result.Contains(item) {
-				t.Errorf("%s: expected intersection to contain %v", tt.name, item)
+			if result.Len() != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), result.Len())
 			}
-		}
+
+			for _, item := range tt.expected {
+				if !result.Contains(item) {
+					t.Errorf("expected intersection to contain %v", item)
+				}
+			}
+
+			// Verify original sets unchanged
+			if s1.Len() != len(tt.set1) {
+				t.Error("original set s1 was modified")
+			}
+			if s2.Len() != len(tt.set2) {
+				t.Error("original set s2 was modified")
+			}
+		})
 	}
 }
 
-func TestDifference(t *testing.T) {
+func TestSet_Difference(t *testing.T) {
 	tests := []struct {
 		name     string
 		set1     []int
@@ -224,31 +288,43 @@ func TestDifference(t *testing.T) {
 		expected []int
 	}{
 		{"empty sets", []int{}, []int{}, []int{}},
-		{"first set empty", []int{}, []int{1, 2}, []int{}},
-		{"second set empty", []int{1, 2}, []int{}, []int{1, 2}},
+		{"first empty", []int{}, []int{1, 2}, []int{}},
+		{"second empty", []int{1, 2}, []int{}, []int{1, 2}},
 		{"no overlap", []int{1, 2}, []int{3, 4}, []int{1, 2}},
 		{"partial overlap", []int{1, 2, 3}, []int{3, 4, 5}, []int{1, 2}},
 		{"complete overlap", []int{1, 2, 3}, []int{1, 2, 3}, []int{}},
+		{"subset removed", []int{1, 2, 3, 4, 5}, []int{2, 3}, []int{1, 4, 5}},
+		{"superset", []int{2, 3}, []int{1, 2, 3, 4, 5}, []int{}},
 	}
 
 	for _, tt := range tests {
-		s1 := New(tt.set1...)
-		s2 := New(tt.set2...)
-		result := s1.Difference(s2)
+		t.Run(tt.name, func(t *testing.T) {
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
+			result := s1.Difference(s2)
 
-		if result.Len() != len(tt.expected) {
-			t.Errorf("%s: expected length %d, got %d", tt.name, len(tt.expected), result.Len())
-		}
-
-		for _, item := range tt.expected {
-			if !result.Contains(item) {
-				t.Errorf("%s: expected difference to contain %v", tt.name, item)
+			if result.Len() != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), result.Len())
 			}
-		}
+
+			for _, item := range tt.expected {
+				if !result.Contains(item) {
+					t.Errorf("expected difference to contain %v", item)
+				}
+			}
+
+			// Verify original sets unchanged
+			if s1.Len() != len(tt.set1) {
+				t.Error("original set s1 was modified")
+			}
+			if s2.Len() != len(tt.set2) {
+				t.Error("original set s2 was modified")
+			}
+		})
 	}
 }
 
-func TestSymmetricDifference(t *testing.T) {
+func TestSet_SymmetricDifference(t *testing.T) {
 	tests := []struct {
 		name     string
 		set1     []int
@@ -256,64 +332,42 @@ func TestSymmetricDifference(t *testing.T) {
 		expected []int
 	}{
 		{"empty sets", []int{}, []int{}, []int{}},
-		{"first set empty", []int{}, []int{1, 2}, []int{1, 2}},
-		{"second set empty", []int{1, 2}, []int{}, []int{1, 2}},
+		{"first empty", []int{}, []int{1, 2}, []int{1, 2}},
+		{"second empty", []int{1, 2}, []int{}, []int{1, 2}},
 		{"no overlap", []int{1, 2}, []int{3, 4}, []int{1, 2, 3, 4}},
 		{"partial overlap", []int{1, 2, 3}, []int{3, 4, 5}, []int{1, 2, 4, 5}},
 		{"complete overlap", []int{1, 2, 3}, []int{1, 2, 3}, []int{}},
+		{"single common", []int{1, 2, 3}, []int{3, 4, 5, 6}, []int{1, 2, 4, 5, 6}},
 	}
 
 	for _, tt := range tests {
-		s1 := New(tt.set1...)
-		s2 := New(tt.set2...)
-		result := s1.SymmetricDifference(s2)
+		t.Run(tt.name, func(t *testing.T) {
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
+			result := s1.SymmetricDifference(s2)
 
-		if result.Len() != len(tt.expected) {
-			t.Errorf("%s: expected length %d, got %d", tt.name, len(tt.expected), result.Len())
-		}
-
-		for _, item := range tt.expected {
-			if !result.Contains(item) {
-				t.Errorf("%s: expected symmetric difference to contain %v", tt.name, item)
+			if result.Len() != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), result.Len())
 			}
-		}
+
+			for _, item := range tt.expected {
+				if !result.Contains(item) {
+					t.Errorf("expected symmetric difference to contain %v", item)
+				}
+			}
+
+			// Verify original sets unchanged
+			if s1.Len() != len(tt.set1) {
+				t.Error("original set s1 was modified")
+			}
+			if s2.Len() != len(tt.set2) {
+				t.Error("original set s2 was modified")
+			}
+		})
 	}
 }
 
-// Test with string type to verify generic functionality
-func TestSetWithStrings(t *testing.T) {
-	s := New("apple", "banana", "cherry")
-
-	if s.Len() != 3 {
-		t.Errorf("expected length 3, got %d", s.Len())
-	}
-
-	if !s.Contains("apple") {
-		t.Error("expected set to contain 'apple'")
-	}
-
-	s.Add("date")
-	if !s.Contains("date") {
-		t.Error("expected set to contain 'date' after adding")
-	}
-
-	s.Remove("banana")
-	if s.Contains("banana") {
-		t.Error("expected set to not contain 'banana' after removal")
-	}
-
-	items := s.Items()
-	sort.Strings(items)
-	expected := []string{"apple", "cherry", "date"}
-	sort.Strings(expected)
-
-	if !reflect.DeepEqual(items, expected) {
-		t.Errorf("expected %v, got %v", expected, items)
-	}
-}
-
-// Test set operations with strings
-func TestSetOperationsWithStrings(t *testing.T) {
+func TestSet_GenericString(t *testing.T) {
 	tests := []struct {
 		name      string
 		operation string
@@ -332,76 +386,122 @@ func TestSetOperationsWithStrings(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		s1 := New(tt.set1...)
-		s2 := New(tt.set2...)
+		t.Run(tt.name, func(t *testing.T) {
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
 
-		var result Set[string]
-		switch tt.operation {
-		case "union":
-			result = s1.Union(s2)
-		case "intersection":
-			result = s1.Intersection(s2)
-		case "difference":
-			result = s1.Difference(s2)
-		case "symmetric_difference":
-			result = s1.SymmetricDifference(s2)
-		}
-
-		if result.Len() != len(tt.expected) {
-			t.Errorf("%s: expected length %d, got %d", tt.name, len(tt.expected), result.Len())
-		}
-
-		for _, item := range tt.expected {
-			if !result.Contains(item) {
-				t.Errorf("%s: expected result to contain %s", tt.name, item)
+			var result Set[string]
+			switch tt.operation {
+			case "union":
+				result = s1.Union(s2)
+			case "intersection":
+				result = s1.Intersection(s2)
+			case "difference":
+				result = s1.Difference(s2)
+			case "symmetric_difference":
+				result = s1.SymmetricDifference(s2)
 			}
-		}
+
+			if result.Len() != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), result.Len())
+			}
+
+			for _, item := range tt.expected {
+				if !result.Contains(item) {
+					t.Errorf("expected result to contain %s", item)
+				}
+			}
+		})
 	}
 }
 
-// Test edge cases
-func TestEmptySetOperations(t *testing.T) {
-	empty1 := New[int]()
-	empty2 := New[int]()
+func TestSet_GenericStruct(t *testing.T) {
+	type Point struct {
+		X, Y int
+	}
 
 	tests := []struct {
 		name      string
-		operation func() Set[int]
+		operation string
+		items     []Point
+		expected  int
 	}{
-		{"union", func() Set[int] { return empty1.Union(empty2) }},
-		{"intersection", func() Set[int] { return empty1.Intersection(empty2) }},
-		{"difference", func() Set[int] { return empty1.Difference(empty2) }},
-		{"symmetric difference", func() Set[int] { return empty1.SymmetricDifference(empty2) }},
+		{"add unique structs", "add", []Point{{1, 2}, {3, 4}, {5, 6}}, 3},
+		{"add duplicate structs", "add", []Point{{1, 2}, {3, 4}, {1, 2}}, 2},
+		{"contains struct", "contains", []Point{{1, 2}, {3, 4}}, 2},
 	}
 
 	for _, tt := range tests {
-		result := tt.operation()
-		if result.Len() != 0 {
-			t.Errorf("%s of empty sets should be empty, got length %d", tt.name, result.Len())
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			s := New(tt.items...)
+
+			if s.Len() != tt.expected {
+				t.Errorf("expected length %d, got %d", tt.expected, s.Len())
+			}
+
+			for _, item := range tt.items[:tt.expected] {
+				if !s.Contains(item) {
+					t.Errorf("expected set to contain %v", item)
+				}
+			}
+		})
 	}
 }
 
-func TestOperationsPreserveOriginalSets(t *testing.T) {
-	s1 := New(1, 2, 3)
-	s2 := New(3, 4, 5)
-
-	originalS1Len := s1.Len()
-	originalS2Len := s2.Len()
-
-	// Perform operations
-	s1.Union(s2)
-	s1.Intersection(s2)
-	s1.Difference(s2)
-	s1.SymmetricDifference(s2)
-
-	// Original sets should be unchanged
-	if s1.Len() != originalS1Len {
-		t.Error("s1 was modified by set operations")
+func TestSet_OperationChaining(t *testing.T) {
+	tests := []struct {
+		name     string
+		set1     []int
+		set2     []int
+		set3     []int
+		expected []int
+	}{
+		{
+			"union then intersection",
+			[]int{1, 2, 3},
+			[]int{3, 4, 5},
+			[]int{3, 5, 6, 7},
+			[]int{3, 5},
+		},
+		{
+			"difference then union",
+			[]int{1, 2, 3, 4},
+			[]int{3, 4},
+			[]int{5, 6},
+			[]int{1, 2, 5, 6},
+		},
 	}
-	if s2.Len() != originalS2Len {
-		t.Error("s2 was modified by set operations")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s1 := New(tt.set1...)
+			s2 := New(tt.set2...)
+			s3 := New(tt.set3...)
+
+			var result Set[int]
+			if tt.name == "union then intersection" {
+				result = s1.Union(s2).Intersection(s3)
+			} else {
+				result = s1.Difference(s2).Union(s3)
+			}
+
+			if result.Len() != len(tt.expected) {
+				t.Errorf("expected length %d, got %d", len(tt.expected), result.Len())
+			}
+
+			for _, item := range tt.expected {
+				if !result.Contains(item) {
+					t.Errorf("expected result to contain %v", item)
+				}
+			}
+		})
 	}
+}
+
+func TestSet_InterfaceCompliance(t *testing.T) {
+	var _ Set[int] = New[int]()
+	var _ Set[string] = New[string]()
+	var _ Set[bool] = New[bool]()
 }
 
 // Benchmark tests
@@ -434,5 +534,31 @@ func BenchmarkSetUnion(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		s1.Union(s2)
+	}
+}
+
+func BenchmarkSetIntersection(b *testing.B) {
+	s1 := New[int]()
+	s2 := New[int]()
+	for i := range 500 {
+		s1.Add(i)
+		s2.Add(i + 250)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s1.Intersection(s2)
+	}
+}
+
+func BenchmarkSetDifference(b *testing.B) {
+	s1 := New[int]()
+	s2 := New[int]()
+	for i := range 500 {
+		s1.Add(i)
+		s2.Add(i + 250)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s1.Difference(s2)
 	}
 }
